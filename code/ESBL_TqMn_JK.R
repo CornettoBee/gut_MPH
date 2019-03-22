@@ -1,12 +1,13 @@
 # Load libraries
 library(tidyverse)
+library(readxl)
 
 # Load data.  This data is from TrEAT TD trial and contains observations from 366
 # Where do the 366 come from? TrEAT only randomized 339. 
 # The numbers given are CT/Cq values i.e. # of cycles of PCR necessary in order to 
 # reach threshold of detection. We deem 35 or less to indicate the genetic material 
 # present (this value is low enough that it )
-TrEAT_Merge_ESBL_2018.09.13_v2 <- read.csv("/Users/cornetto/Library/Mobile Documents/com~apple~CloudDocs/Data_Analysis/Data/TrEAT_Merge_ESBL_2018.09.13_v2.csv", header = T)
+treat <- read_excel("data/raw/TrEAT_Merge_ESBL_2018.09.13_v2.csv")
 
 # Get a conception of the data set:
 ls()  # contents of current work space
