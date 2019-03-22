@@ -1,5 +1,6 @@
 # Load libraries
 library(tidyverse)
+install.packages("readxl")
 library(readxl)
 
 # Load data.  This data is from TrEAT TD trial and contains observations from 366
@@ -7,7 +8,7 @@ library(readxl)
 # The numbers given are CT/Cq values i.e. # of cycles of PCR necessary in order to 
 # reach threshold of detection. We deem 35 or less to indicate the genetic material 
 # present (this value is low enough that it )
-treat <- read_excel("data/raw/TrEAT_Merge_ESBL_2018.09.13_v2.csv")
+treat <- read_excel("data/raw/TrEAT_Merge_ESBL_2018.09.13_v2.XLSX")
 
 # Get a conception of the data set:
 ls()  # contents of current work space
