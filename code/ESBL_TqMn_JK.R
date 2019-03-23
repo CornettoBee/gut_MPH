@@ -8,6 +8,11 @@ library(readxl)
 # reach threshold of detection. We deem 35 or less to indicate the genetic material 
 # present (value is low enough that we deem it to be present)
 # set working directory to gut_MPH
+
+######################################
+#### Both TaqMan & Phenotypic data ###
+######################################
+
 treat <- read_excel("data/raw/TrEAT_Merge_ESBL_2018.09.13_v2.XLSX")
 
 
@@ -18,14 +23,9 @@ dim(treat)
 object.size(treat)  # just over one MB
 summary(treat)  # not very helpful
 
-# Select slightly more relevant data
-S_TrEAT_Merge_ESBL <- select(treat, STUDY_ID_TRUNC, AGE,   
-                             SEX, ends_with("STOOL"), ends_with("CARD"), ends_with("V1"), ends_with("V5")) 
-
-
 # Let's find the average TLUS (time to last unformed stool i.e. time to cure) indexed
 # /grouped by site:
-> tapply(treat$TLUS, treat$SITE, mean)
+tapply(treat$TLUS, treat$SITE, mean)
 
 # This command does work but sites 48, 61 and 92 all render NA. There is at least one
 # NA in the data for site 48 so perhaps we just need to tell R how to handle NAs. 
@@ -38,7 +38,7 @@ tapply(SITE_TLUS$TLUS, SITE_TLUS$SITE, mean) # same problem, NAs nullify any att
 
 no_na <- !is.na(SITE_TLUS) # Just gives whether true or false NA
 
-mean(no_na) # But taking mean will give us proportion of TRUE since TRUE and FALSE are
+mean(no_na) # Taking mean will give us proportion of TRUE since TRUE and FALSE are
 # coded as 1 and 0, respectively. This way we can see how many NAs there are and a better
 # idea of what effect removal will have on the data. (here: 99% are TRUE i.e. few NAs)
 # We will see below exactly what number of NAs are removed.
@@ -52,17 +52,95 @@ tapply(pure_SITE_TLUS$TLUS, pure_SITE_TLUS$SITE, mean)  # we see that SITE 76 wi
 
 
 
+########################
+#### Phenotypic data ###
+########################
+
 # Let's narrow the data we want to observe:
 Slim_treat <- select(treat, STUDY_ID_TRUNC, AGE, 
                                 SEX, ends_with("V1"), ends_with("V5")) 
+
+str(Slim_treat)  # PROBLEM:   R sees phenotypic resistance status (ESBL_V1, ESBL_V5) as
+# character data instead of numeric/integer.  
+# Must convert these data to numeric/integer. 
+
+# Create new df with ESBL_V1/V5 variables as integer instead of character/factor:
+# Code as: 
+# NS -> 0
+# Negative -> 0
+# Positive -> 1
+# N/A -> NA
+
+int_ESBL_V1V5 <- Slim_treat %>%
+  mutate(int_V1 = ifelse(ESBL_V1 == "NS", 0, 
+                         ifelse(ESBL_V1 == "Negative", 0, 
+                                ifelse(ESBL_V1 == "Positive", 1, 
+                                       ifelse(ESBL_V1 == "N/A", NA, NA))))) %>%
+  mutate(int_V5 = ifelse(ESBL_V5 == "NS", 0, 
+                         ifelse(ESBL_V5 == "Negative", 0, 
+                                ifelse(ESBL_V5 == "Positive", 1, 
+                                       ifelse(ESBL_V5 == "N/A", NA, NA)))))
+
+
+
+str(int_ESBL_V1V5)
+
+# Find number of missing in int_V1 variable:
+int_ESBL_V1V5$int_V1 %>%
+  sum(na.rm = TRUE)   # gives 12
+
+d <- int_ESBL_V1V5$int_V1 # then take sum:
+
+sum(d, na.rm = TRUE)  # gives 12 ; so there are 12 positives
+# Using phenotypic testing we find that there are 12/366 observations that were positive
+# among non-pathogenic E. coli on V1 (visit 1) for ESBL. 
+# However, as noted below, there are 55 NAs among this data. Do these NAs indicate not 
+# tested, not enough sample, or nothing grew? 
+
+int_ESBL_V1V5$ISOLATES_POSITIVE_V1 %>%
+  sum(na.rm = TRUE)   # gives 20 because sometimes a positive results in multiple positive
+# isolates
+
+e <- int_ESBL_V1V5$ISOLATES_POSITIVE_V1
+sum(e, na.rm = TRUE)  # gives 20 
+
+# How many NAs are in the int_V1 vector/variable?
+na_V1 <- is.na(int_ESBL_V1V5$int_V1)
+table(na_V1)  # So there are 55 TRUE which means 55 NAs
+
+
+
+########################
+#### TaqMan data #######
+########################
+# Select the variables of interest:
+card_stool_tqmn <- select(treat, 
+                       starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
+
+# Problem: all these values in this dataframe are coded as factors.  We want them to be
+# numeric or integer type. 
+
+f <- card_stool_tqmn$Bacterial_16s_STOOL
+as.numeric(levels(f))[as.integer(f)]
+
+as.numeric(levels(f))[f]
+g <- card_stool_tqmn$CTX_STOOL
+
+as.numeric(levels(g))[as.integer(f)]
+str(g)
+g > 30
+
+
+
+####### Missing Data Analysis ########
 
 
 # Check for missing data in the ESBL_V1 column:
 is.na(Slim_treat[, "ESBL_V1"])  # This result gives all FALSE which
 # doesn't make sense based on what you see when looking at dataframe, namely "Undetermined"
 # and just blank. R must see them as... characters. (tested this below)
-str(Slim_treat$ESBL_V1)
-
+str(Slim_treat$ESBL_V1)   # PROBLEM:  R sees 
+str(treat)
 pure_Slim_treat <- remove_missing(Slim_treat)  # I am not certain 
 # which values R is assuming are missing so this is dangerous move, besides the fact that
 # I've removed over half the rows (192/366). 
@@ -86,56 +164,10 @@ binary_ESBL_V1 <- ifelse(num_ESBL$ESBL_V1 == 3, NA,
                                        ifelse(ESBL_V1 = 4, 1, NA)))) # does not work
 
 
-######### 
-# Create new df with ESBL_V1 variable as numeric instead of factor:
-num_ESBL_V1 <- Slim_treat %>%
-  mutate(numbers_V1 = ifelse(ESBL_V1 == "NS", 0, 
-                             ifelse(ESBL_V1 == "Negative", 0, 
-                                    ifelse(ESBL_V1 == "Positive", 1, 
-                                           ifelse(ESBL_V1 == "N/A", NA, NA)))))  # Success!
-
-# Find number of missing in numbers_V1 variable:
-num_ESBL_V1$numbers_V1 %>%
-  sum(na.rm = TRUE)   # gives 12
-
-d <- num_ESBL_V1$numbers_V1 # then take sum:
-
-sum(d, na.rm = TRUE)  # gives 12 ; so there are 12 positives
-# Using phenotypic testing we find that there are 12/366 observations that were positive
-# among non-pathogenic E. coli on V1 (visit 1) for ESBL. 
-# However, as noted below, there are 55 NAs among this data. Do these NAs indicate not 
-# tested, not enough sample, or nothing grew? 
-
-num_ESBL_V1$ISOLATES_POSITIVE_V1 %>%
-  sum(na.rm = TRUE)   # gives 20 because sometimes a positive results in multiple positive
-# isolates
-
-e <- num_ESBL_V1$ISOLATES_POSITIVE_V1
-sum(e, na.rm = TRUE)  # gives 20 
-
-# How many NAs are in the numbers_V1 vector/variable?
-na_V1 <- is.na(num_ESBL_V1$numbers_V1)
-table(na_V1)  # So there are 55 TRUE which means 55 NAs
-
-# Select the variables of interest:
-card_stool_tqmn <- select(treat, 
-                       starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
-
-# Problem: all these values in this dataframe are coded as factors.  We want them to be
-# numeric
-
-f <- card_stool_tqmn$Bacterial_16s_STOOL
-as.numeric(levels(f))[as.integer(f)]
-
-as.numeric(levels(f))[f]
-g <- card_stool_tqmn$CTX_STOOL
-
-as.numeric(levels(g))[as.integer(f)]
-str(g)
-g > 30
+#### APPENDIX/Self-reference for coding ####
 
 # Some failed attempts to convert a factor vector to numeric using case_when:
-num_ESBL_V1_c <- Slim_treat %>%
+int_ESBL_V1V5_c <- Slim_treat %>%
   case_when(
     ESBL_V1 == "NS" ~ 0, 
     ESBL_V1 == "Negative" ~ 0, 
@@ -145,7 +177,7 @@ num_ESBL_V1_c <- Slim_treat %>%
 
 levels(Slim_treat$ESBL_V1)
 
-num_ESBL_V1_d <- Slim_treat %>%
+int_ESBL_V1V5_d <- Slim_treat %>%
   case_when(
     ESBL_V1 == level 3 ~ 0, 
     ESBL_V1 == 2 ~ 0, 
@@ -153,7 +185,7 @@ num_ESBL_V1_d <- Slim_treat %>%
     ESBL_V1 == 1 ~ NA_integer_
   )
 
-num_ESBL_V1_e <- ESBL_V1_unc %>%
+int_ESBL_V1V5_e <- ESBL_V1_unc %>%
   case_when(
     ESBL_V1 == 3 ~ 0, 
     ESBL_V1 == 2 ~ 0, 
@@ -161,7 +193,7 @@ num_ESBL_V1_e <- ESBL_V1_unc %>%
     ESBL_V1 == 1 ~ NA_integer_
   )
 
-num_ESBL_V1_e2 <- ESBL_V1_unc %>%
+int_ESBL_V1V5_e2 <- ESBL_V1_unc %>%
   case_when(
     ESBL_V1 = 3 ~ 0, 
     ESBL_V1 = 2 ~ 0, 
@@ -169,7 +201,7 @@ num_ESBL_V1_e2 <- ESBL_V1_unc %>%
     ESBL_V1 = 1 ~ NA_integer_
   )
 
-num_ESBL_V1_c2 <- Slim_treat %>%
+int_ESBL_V1V5_c2 <- Slim_treat %>%
   case_when(
     .$ESBL_V1 == "NS" ~ 0, 
     .$ESBL_V1 == "Negative" ~ 0, 
@@ -183,9 +215,9 @@ new_ESBL_V1 <- Slim_treat %>%
 
 
 
-Corr_ESBL_c <- cor(num_ESBL_V1, treat$ISOLATES_POSITIVE_V1, use = "complete.obs")
+Corr_ESBL_c <- cor(int_ESBL_V1V5, treat$ISOLATES_POSITIVE_V1, use = "complete.obs")
 Corr_ESBL_c
-num_ESBL_V1
+int_ESBL_V1V5
 
 no_na_V1 <- V1 %>% 
   ifelse("N/A", remove(ESBL_V1), ESBL_V1)
