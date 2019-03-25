@@ -23,33 +23,12 @@ dim(treat)
 object.size(treat)  # just over one MB
 summary(treat)  # not very helpful
 
-# Let's find the average TLUS (time to last unformed stool i.e. time to cure) indexed
-# /grouped by site:
-tapply(treat$TLUS, treat$SITE, mean)
-
-# This command does work but sites 48, 61 and 92 all render NA. There is at least one
-# NA in the data for site 48 so perhaps we just need to tell R how to handle NAs. 
-# Let's make a new dataframe with only SITE and TLUS then remove NAs from it. 
-SITE_TLUS <- select(treat, SITE, TLUS)
-class(SITE_TLUS)
-str(SITE_TLUS)
-tapply(SITE_TLUS$TLUS, SITE_TLUS$SITE, mean) # same problem, NAs nullify any attempt
-# to get the mean.  Tried using na.omit, na.exclude, na.pass but none of those work
-
-no_na <- !is.na(SITE_TLUS) # Just gives whether true or false NA
-
-mean(no_na) # Taking mean will give us proportion of TRUE since TRUE and FALSE are
-# coded as 1 and 0, respectively. This way we can see how many NAs there are and a better
-# idea of what effect removal will have on the data. (here: 99% are TRUE i.e. few NAs)
-# We will see below exactly what number of NAs are removed.
-
-# To remove the few missing values
-pure_SITE_TLUS <- remove_missing(SITE_TLUS)  # (4 rows removed)
-
-# Then apply the mean to each TLUS as indexed/grouped by SITE:
-tapply(pure_SITE_TLUS$TLUS, pure_SITE_TLUS$SITE, mean)  # we see that SITE 76 with 
-# much higher mean time (57hrs) than the other 4 sites (14-17hrs). 
-
+# Average TLUS by site (using dplyr). Remove NA's from columns
+#   and include a column with number of instances per group
+treat %>% 
+  group_by(SITE) %>% 
+  summarise(mean_TLUS = mean(TLUS, na.rm = TRUE),
+            n = n())
 
 
 ########################
