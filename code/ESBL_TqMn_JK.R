@@ -15,7 +15,8 @@ library(readxl)
 
 treat <- read_excel("data/raw/TrEAT_Merge_ESBL_2018.09.13_v2.XLSX")
 
-
+treat_csv <- read_csv("data/processed/TrEAT_Merge_ESBL_2018.09.13_v2.csv")
+str(treat_csv)
 # Get a conception of the data set:
 ls()  # contents of current work space
 class(treat) # dataframe
@@ -116,6 +117,10 @@ table(na_V1)  # So there are 55 TRUE which means 55 NAs
 # Select the variables of interest:
 card_stool_tqmn <- select(treat, 
                        starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
+
+card_stool_tqmn_CSV <- select(treat_csv, 
+                          starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
+# Reading data in from a csv does not solve this problem, as noted above. 
 
 # Problem: all these values in this dataframe are coded as factors.  We want them to be
 # numeric or integer type. 
