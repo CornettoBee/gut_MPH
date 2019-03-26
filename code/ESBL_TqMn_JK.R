@@ -124,18 +124,30 @@ card_stool_tqmn_CSV <- select(treat_csv,
 
 # Problem: all these values in this dataframe are coded as factors.  We want them to be
 # numeric or integer type. 
+# First, what values do these variables contain in terms of our analysis? There are 3 types:
+# number(Cq value), "Undetermined" and NA. We interpret Undetermined and NA as meaning 
+# there was no bacteria detected using the TaqMan real-time PCR containing the gene 
+# coding for the type of ESBL resistance specified. 
+# Let's make these character vectors into integer. 
+# Since the Cq values in this data are unique numbers it's not feasible to use an ifelse 
+# statement for each one of them when converting them into numeric type data. Instead, 
+# let's designate each Undetermined or NA as NA while leaving the rest as is.  Then, we 
+# can convert them to integer. 
 
 f <- card_stool_tqmn$Bacterial_16s_STOOL
 as.numeric(levels(f))[as.integer(f)]
-
+f[1:50]
+str(f)
 as.numeric(levels(f))[f]
+str(f)
+
 g <- card_stool_tqmn$CTX_STOOL
 
 as.numeric(levels(g))[as.integer(f)]
 str(g)
 g > 30
-
-
+g[5:50]
+g
 
 ####### Missing Data Analysis ########
 
