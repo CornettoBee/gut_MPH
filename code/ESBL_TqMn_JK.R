@@ -140,6 +140,15 @@ card_stool_tqmn_CSV <- select(treat_csv,
 tqmn_na_int <- card_stool_tqmn %>%
   mutate_if(is.character, as.double)
 
+# Check:
+str(tqmn_na_int)
+tqmn_na_int$CTX_STOOL[10:50]
+
+# Cq value of <= 35 means present. 
+tqmn_na_int_pos <- tqmn_na_int %>%
+  mutate_if(x <= 35, )
+
+
 f <- card_stool_tqmn$Bacterial_16s_STOOL
 as.numeric(levels(f))[as.integer(f)]
 f[1:50]
