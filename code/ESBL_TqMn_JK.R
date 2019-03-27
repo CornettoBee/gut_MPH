@@ -134,6 +134,12 @@ card_stool_tqmn_CSV <- select(treat_csv,
 # let's designate each Undetermined or NA as NA while leaving the rest as is.  Then, we 
 # can convert them to integer. 
 
+
+# Use the scoped forms of mutate and transmutate such as mutate_if in order to change
+# from one type of variable to another type (thanks: https://dplyr.tidyverse.org/reference/mutate_all.html)
+tqmn_na_int <- card_stool_tqmn %>%
+  mutate_if(is.character, as.double)
+
 f <- card_stool_tqmn$Bacterial_16s_STOOL
 as.numeric(levels(f))[as.integer(f)]
 f[1:50]
