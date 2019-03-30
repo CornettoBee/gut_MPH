@@ -122,7 +122,9 @@ card_stool_tqmn_CSV <- select(treat_csv,
                           starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
 # Reading data in from a csv does not solve this problem, as noted above. 
 
-# Problem: all these values in this dataframe are coded as factors.  We want them to be
+
+##### Problem: #####
+# All these values in this dataframe are coded as factors.  We want them to be
 # numeric or integer type. 
 # First, what values do these variables contain in terms of our analysis? There are 3 types:
 # number(Cq value), "Undetermined" and NA. We interpret Undetermined and NA as meaning 
@@ -138,33 +140,59 @@ card_stool_tqmn_CSV <- select(treat_csv,
 # Use the scoped forms of mutate and transmutate such as mutate_if in order to change
 # from one type of variable to another type (thanks: https://dplyr.tidyverse.org/reference/mutate_all.html)
 tqmn_na_int <- card_stool_tqmn %>%
-  mutate_if(is.character, as.double)
+  mutate_if(is.character, as.double)  # note: introduces NAs by coercion, including all 
+# STUDY_IDs
 
 # Check:
 str(tqmn_na_int)
 tqmn_na_int$CTX_STOOL[10:50]
 
+
+##### Next goal: ##### 
+# Iterate through all rows of each column and recode each value less than/equal
+# to 35 as 1, each value > 35 as 0, and each NA remains NA. 
 # Cq value of <= 35 means present. 
+presence <- function(cut, dat, na.rm = TRUE){
+  cut(dat)
+}
+
+
+presence(cut = cut(tqmn_na_int, all_vars(is_integer(.)), c(0, 35, 100)))
+presence(cut = cut(chocolate, c(0, 35, 100)))
+
 tqmn_na_int_pos <- tqmn_na_int %>%
-  mutate_if(x <= 35, )
+  mutate_if(all_vars(is_integer(.)), ifelse(type))
+
+sums <- summarise_all(tqmn_na_int, sum, na.rm = TRUE)
+
+ifelse()
 
 
-f <- card_stool_tqmn$Bacterial_16s_STOOL
-as.numeric(levels(f))[as.integer(f)]
-f[1:50]
-str(f)
-as.numeric(levels(f))[f]
-str(f)
+
+# For loops:
+  x <- c("a", "b", "c", "d")
+for(i in 1:7){
+  print(x[i])
+}
+
+for(i in rownames(tqmn_na_int))
+  print(tqmn_na_int[i, "CTX_STOOL"], na.print = FALSE)
+
+probe_pos <- for(row in seq_len(nrow(tqmn_na_int))) {
+  p <- tqmn_na_int[row, "CTX_STOOL"]
+  ifelse(p > 35, 0, ifelse(p <= 35, 1, NA))
+}
+
+probe_pos <- function(variable) 
 
 g <- card_stool_tqmn$CTX_STOOL
-
 as.numeric(levels(g))[as.integer(f)]
 str(g)
 g > 30
 g[5:50]
 g
 
-####### Missing Data Analysis ########
+##### Missing Data Analysis #####
 
 
 # Check for missing data in the ESBL_V1 column:
