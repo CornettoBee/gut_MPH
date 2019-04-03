@@ -148,7 +148,7 @@ ifelse()
 
 
 
-# For loops:
+##### For loops:
   x <- c("a", "b", "c", "d")
 for(i in 1:7){
   print(x[i])
@@ -157,12 +157,64 @@ for(i in 1:7){
 for(i in rownames(tqmn_na_int))
   print(tqmn_na_int[i, "CTX_STOOL"], na.print = FALSE)
 
-probe_pos <- for(row in seq_len(nrow(tqmn_na_int))) {
-  p <- tqmn_na_int[row, "CTX_STOOL"]
+##### Attempt 1
+probe_test1 <- function(variable) {
+  for(row in seq_len(nrow(tqmn_na_int))) {
+  p <- tqmn_na_int[row, variable]
   ifelse(p > 35, 0, ifelse(p <= 35, 1, NA))
+  data.frame(p)
+  }
 }
 
-probe_pos <- function(variable) 
+##### Attempt 2
+probe_test2 <- function(variable) {
+  for(row in seq_len(nrow(tqmn_na_int))) {
+    p <- tqmn_na_int[row, variable]
+    mutate(tqmn_na_int, probe_pos = ifelse(p > 35, 0, ifelse(p <= 35, 1, NA)))
+  }
+}   # Testing with: probe_test2("CTX_STOOL") yields nothing. 
+
+##### Attempt 3
+probe_test3 <- function(variable) {
+  for(row in seq_len(nrow(tqmn_na_int))) {
+    p <- tqmn_na_int[row, variable]
+  }  
+    mutate(tqmn_na_int, probe_pos = ifelse(p > 35, 0, ifelse(p <= 35, 1, NA)))
+}    # Testing with: df_test <- probe_test3("CTX_STOOL") yields df with probe_pos column but all 
+# are NAs. 
+
+##### Attempt 3.1
+probe_test3.1 <- function(variable) {
+  for(row in seq_len(nrow(variable))) {
+    p <- nrow(variable)
+  }  
+  mutate(tqmn_na_int, probe_pos = ifelse(p > 35, 0, ifelse(p <= 35, 1, NA)))
+} # Testing with: df_test <- probe_test3(tqmn_na_int) yields df with probe_pos column but all 
+# are 0s. Duh, bc the number of rows is p and it's greater than 35. 
+
+df_test <- probe_test3(tqmn_na_int)
+
+##### Attempt 4
+probe_test4 <- function(variable) {
+  for(row in seq_len(nrow(tqmn_na_int))) {
+    p <- tqmn_na_int[row, variable]
+  }  
+  mutate(tqmn_na_int, probe_pos = ifelse(p > 35, 0, ifelse(p <= 35, 1, NA)))
+  tibble(p, row)
+}   
+
+##### Attempt 5
+probe_test5 <- function(x) {
+  nc <- ncol(x)
+  r <- nrow(x)
+  for(i in 1:nc) {
+    for(ii in 1:r) {
+      mutate(i, probe_pos = ifelse(ii > 35, 0, ifelse(ii <= 35, 1, NA)))    
+    }
+  }
+}    # Testing w/ probe_test5(tqmn_na_int) yielded error since mutate can't take just an integer
+# class object.
+
 
 g <- card_stool_tqmn$CTX_STOOL
 as.numeric(levels(g))[as.integer(f)]
