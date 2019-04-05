@@ -20,8 +20,7 @@ str(treat)
 ls()  # contents of current work space
 class(treat) # dataframe
 dim(treat)  
-object.size(treat)  # just over one MB
-summary(treat)  # not very helpful
+print(object.size(treat), units = "Mb") # just over 1 Mb
 
 # Average TLUS by site (using dplyr). Remove NA's from columns
 #   and include a column with number of instances per group
@@ -36,8 +35,9 @@ treat %>%
 ########################
 
 # Let's narrow the data we want to observe:
-Slim_treat <- select(treat, STUDY_ID_TRUNC, AGE, 
-                                SEX, ends_with("V1"), ends_with("V5")) 
+Slim_treat <- treat %>%
+  select(STUDY_ID_TRUNC, AGE,
+         SEX, starts_with("ESBL_V"))
 
 str(Slim_treat)  # PROBLEM:   R sees phenotypic resistance status (ESBL_V1, ESBL_V5) as
 # character data instead of numeric/integer.  
@@ -51,37 +51,33 @@ str(Slim_treat)  # PROBLEM:   R sees phenotypic resistance status (ESBL_V1, ESBL
 # N/A -> NA
 
 int_ESBL_V1V5 <- Slim_treat %>%
-  mutate(int_V1 = ifelse(ESBL_V1 == "NS", 0, 
-                         ifelse(ESBL_V1 == "Negative", 0, 
-                                ifelse(ESBL_V1 == "Positive", 1, 
-                                       ifelse(ESBL_V1 == "N/A", NA, NA))))) %>%
-  mutate(int_V5 = ifelse(ESBL_V5 == "NS", 0, 
-                         ifelse(ESBL_V5 == "Negative", 0, 
-                                ifelse(ESBL_V5 == "Positive", 1, 
-                                       ifelse(ESBL_V5 == "N/A", NA, NA)))))
+  mutate(int_V1 = ifelse(ESBL_V1 == "NS", NA, 
+                  ifelse(ESBL_V1 == "Negative", 0, 
+                  ifelse(ESBL_V1 == "Positive", 1, 
+                  ifelse(ESBL_V1 == "N/A", NA, NA))))) %>%
+  mutate(int_V5 = ifelse(ESBL_V5 == "NS", NA, 
+                  ifelse(ESBL_V5 == "Negative", 0, 
+                  ifelse(ESBL_V5 == "Positive", 1, 
+                  ifelse(ESBL_V5 == "N/A", NA, NA)))))
 
 
 
 str(int_ESBL_V1V5)
 
 # Find number of missing in int_V1 variable:
-int_ESBL_V1V5$int_V1 %>%
-  sum(na.rm = TRUE)   # gives 12
+sum(is.na(int_ESBL_V1V5$int_V1))
 
-d <- int_ESBL_V1V5$int_V1 # then take sum:
 
-sum(d, na.rm = TRUE)  # gives 12 ; so there are 12 positives
+int_ESBL_V1V5 %>%
+  select(int_V1) %>% 
+  group_by(int_V1) %>% 
+  tally()
+
 # Using phenotypic testing we find that there are 12/366 observations that were positive
 # among non-pathogenic E. coli on V1 (visit 1) for ESBL. 
 # However, as noted below, there are 55 NAs among this data. Do these NAs indicate not 
 # tested, not enough sample, or nothing grew? 
 
-int_ESBL_V1V5$ISOLATES_POSITIVE_V1 %>%
-  sum(na.rm = TRUE)   # gives 20 because sometimes a positive results in multiple positive
-# isolates
-
-e <- int_ESBL_V1V5$ISOLATES_POSITIVE_V1
-sum(e, na.rm = TRUE)  # gives 20 
 
 # How many NAs are in the int_V1 vector/variable?
 na_V1 <- is.na(int_ESBL_V1V5$int_V1)
@@ -93,12 +89,10 @@ table(na_V1)  # So there are 55 TRUE which means 55 NAs
 #### TaqMan data #######
 ########################
 # Select the variables of interest:
-card_stool_tqmn <- select(treat, 
-                       starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
+card_stool_tqmn_V1 <- select(treat, 
+                       starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), 
+                       starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
 
-card_stool_tqmn_CSV <- select(treat_csv, 
-                          starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
-# Reading data in from a csv does not solve this problem, as noted above. 
 
 
 ##### Problem: #####
@@ -117,9 +111,18 @@ card_stool_tqmn_CSV <- select(treat_csv,
 
 # Use the scoped forms of mutate and transmutate such as mutate_if in order to change
 # from one type of variable to another type (thanks: https://dplyr.tidyverse.org/reference/mutate_all.html)
-tqmn_na_int <- card_stool_tqmn %>%
-  mutate_if(is.character, as.double)  # note: introduces NAs by coercion, including all 
-# STUDY_IDs
+tqmn_na_int <- card_stool_tqmn_V1 %>%
+  mutate_at(vars(c(-STUDY_ID_TRUNC)), funs(as.double))  # note: introduces NAs by coercion, including all 
+
+# Ryan's code for interpreting the taq values
+tqmn_na_int <- card_stool_tqmn_V1 %>%
+  # Change 'Undertermined' to max threshold (40)
+  mutate_at(vars(-STUDY_ID_TRUNC), funs(ifelse(. == "Undetermined", 40, .))) %>%
+  # Convert all columns to numeric (will coerce 'Indeterminate' to NA)
+  mutate_at(vars(-STUDY_ID_TRUNC), as.numeric) %>%
+  # Convert all values under 35 to 1 and over 35 to 0
+  mutate_at(vars(-STUDY_ID_TRUNC), funs(ifelse(. < 35, 1, 0)))
+
 
 # Check:
 str(tqmn_na_int)
