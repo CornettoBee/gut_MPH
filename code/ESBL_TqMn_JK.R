@@ -15,8 +15,7 @@ library(readxl)
 
 treat <- read_excel("data/raw/TrEAT_Merge_ESBL_2018.09.13_v2.XLSX")
 
-treat_csv <- read_csv("data/processed/TrEAT_Merge_ESBL_2018.09.13_v2.csv")
-str(treat_csv)
+str(treat)
 # Get a conception of the data set:
 ls()  # contents of current work space
 class(treat) # dataframe
