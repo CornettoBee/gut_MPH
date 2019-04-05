@@ -144,7 +144,6 @@ tqmn_na_int_pos <- tqmn_na_int %>%
 
 sums <- summarise_all(tqmn_na_int, sum, na.rm = TRUE)
 
-ifelse()
 
 
 
@@ -192,7 +191,6 @@ probe_test3.1 <- function(variable) {
 } # Testing with: df_test <- probe_test3(tqmn_na_int) yields df with probe_pos column but all 
 # are 0s. Duh, bc the number of rows is p and it's greater than 35. 
 
-df_test <- probe_test3(tqmn_na_int)
 
 ##### Attempt 4
 probe_test4 <- function(variable) {
@@ -215,6 +213,34 @@ probe_test5 <- function(x) {
 }    # Testing w/ probe_test5(tqmn_na_int) yielded error since mutate can't take just an integer
 # class object.
 
+##### Attempt 6
+probe_test6 <- function(x) {
+  nc <- ncol(x)
+  r <- nrow(x)
+  for(i in 1:nc) {
+    for(ii in 1:r) {
+      mutate(x, probe_pos = ifelse(ii > 35, 0, ifelse(ii <= 35, 1, NA)))    
+    }
+  }
+}  # Renders NULL, likely bc you didn't specify i in first for loop. 
+
+
+##### Attempt 7
+probe_test7 <- function(x) {
+  nc <- ncol(x)
+  r <- nrow(x)
+  clnms <- colnames(x)
+  rnms <- list(1:366)
+  matx <- matrix(nrow = r, ncol = nc, byrow = FALSE)
+  for(i in 1:nc) {
+    for(ii in 1:r) {
+      matx[i] <- transmute(x, probe_pos = ifelse(ii > 35, 0, ifelse(ii <= 35, 1, NA)))    
+    }
+  }
+}   # Testing w/ df <- probe_test7(tqmn_na_int) yields NULL. 
+
+
+df <- probe_test7(tqmn_na_int)
 
 g <- card_stool_tqmn$CTX_STOOL
 as.numeric(levels(g))[as.integer(f)]
