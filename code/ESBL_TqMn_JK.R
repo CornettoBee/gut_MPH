@@ -45,7 +45,7 @@ str(Slim_treat)  # PROBLEM:   R sees phenotypic resistance status (ESBL_V1, ESBL
 
 # Create new df with ESBL_V1/V5 variables as integer instead of character/factor:
 # Code as: 
-# NS -> 0
+# NS -> NA
 # Negative -> 0
 # Positive -> 1
 # N/A -> NA
@@ -65,23 +65,29 @@ int_ESBL_V1V5 <- Slim_treat %>%
 str(int_ESBL_V1V5)
 
 # Find number of missing in int_V1 variable:
-sum(is.na(int_ESBL_V1V5$int_V1))
+sum(is.na(int_ESBL_V1V5$int_V1)) # 134/366
+# missing in int_V5:
+sum(is.na(int_ESBL_V1V5$int_V5)) # 196/366
 
+# More visual methods: 
+na_V1 <- is.na(int_ESBL_V1V5$int_V1)
+table(na_V1)
 
 int_ESBL_V1V5 %>%
   select(int_V1) %>% 
   group_by(int_V1) %>% 
   tally()
 
+int_ESBL_V1V5 %>%
+  select(int_V5) %>% 
+  group_by(int_V5) %>% 
+  tally()
+
+# Summary: 
 # Using phenotypic testing we find that there are 12/366 observations that were positive
-# among non-pathogenic E. coli on V1 (visit 1) for ESBL. 
-# However, as noted below, there are 55 NAs among this data. Do these NAs indicate not 
-# tested, not enough sample, or nothing grew? 
+# among non-pathogenic E. coli on V1 (visit 1) for ESBL and 17/170 positive on 
+# V5 (visit day 5)
 
-
-# How many NAs are in the int_V1 vector/variable?
-na_V1 <- is.na(int_ESBL_V1V5$int_V1)
-table(na_V1)  # So there are 55 TRUE which means 55 NAs
 
 
 
@@ -89,33 +95,42 @@ table(na_V1)  # So there are 55 TRUE which means 55 NAs
 #### TaqMan data #######
 ########################
 # Select the variables of interest:
-card_stool_tqmn_V1 <- select(treat, 
+#note: this treat dataset only contains TaqMan data for V1; must go to HumiChip dataset 
+# to get V5 TaqMan data. (thus the V1 in the variable name)
+card_stool_tqmn_V1 <- select(treat,   
                        starts_with("Bacterial"), starts_with("AGE"), starts_with("CTX"), starts_with("KPC"), 
                        starts_with("NDM"), starts_with("SHV"), starts_with("TEM"), starts_with("CMY"), starts_with("STUDY"))
 
-
-
 ##### Problem: #####
 # All these values in this dataframe are coded as factors.  We want them to be
-# numeric or integer type. 
+# numeric type. 
 # First, what values do these variables contain in terms of our analysis? There are 3 types:
-# number(Cq value), "Undetermined" and NA. We interpret Undetermined and NA as meaning 
+# number(Cq value), "Undetermined" and NA. We interpret Undetermined as meaning 
 # there was no bacteria detected using the TaqMan real-time PCR containing the gene 
-# coding for the type of ESBL resistance specified. 
-# Let's make these character vectors into integer. 
+# coding for the type of ESBL resistance specified. NA means missing data. 
+
+# Let's make these character vectors into doubles. 
 # Since the Cq values in this data are unique numbers it's not feasible to use an ifelse 
 # statement for each one of them when converting them into numeric type data. Instead, 
-# let's designate each Undetermined or NA as NA while leaving the rest as is.  Then, we 
-# can convert them to integer. 
+# let's designate each "Undetermined" as above the Cq threshold for detection (Undetermined
+# designates that during testing we did not detect anything, but it's not a missing/NA 
+# value).  We will keep "NA" as NA while leaving the rest as is. In this process we will
+# recode Undetermined and Cq numbers from factor to double.
+
 
 
 # Use the scoped forms of mutate and transmutate such as mutate_if in order to change
 # from one type of variable to another type (thanks: https://dplyr.tidyverse.org/reference/mutate_all.html)
-tqmn_na_int <- card_stool_tqmn_V1 %>%
-  mutate_at(vars(c(-STUDY_ID_TRUNC)), funs(as.double))  # note: introduces NAs by coercion, including all 
+# Also, using Ryan's code, "Undetermined" or "NA" will be NA while the Cq values will
+# become doubles. 
+tqmn_na_int <- card_stool_tqmn_V1 %>%  # Not the best method since leaves both undetected
+  # values and missing values as NA. 
+  mutate_at(vars(-STUDY_ID_TRUNC), funs(as.double))  # note: introduces NAs by coercion,
+# including all Ryan's code for interpreting the taq values (there are a few "Indeterminate"
+# values which we coerce to NA)
 
-# Ryan's code for interpreting the taq values
-tqmn_na_int <- card_stool_tqmn_V1 %>%
+# Ryan's code: 
+tqmn_na_int_Cq <- card_stool_tqmn_V1 %>%
   # Change 'Undertermined' to max threshold (40)
   mutate_at(vars(-STUDY_ID_TRUNC), funs(ifelse(. == "Undetermined", 40, .))) %>%
   # Convert all columns to numeric (will coerce 'Indeterminate' to NA)
@@ -181,8 +196,8 @@ probe_test3 <- function(variable) {
     p <- tqmn_na_int[row, variable]
   }  
     mutate(tqmn_na_int, probe_pos = ifelse(p > 35, 0, ifelse(p <= 35, 1, NA)))
-}    # Testing with: df_test <- probe_test3("CTX_STOOL") yields df with probe_pos column but all 
-# are NAs. 
+}    # Testing with: df_test <- probe_test3("CTX_STOOL") yields df with probe_pos column but
+# all are NAs. 
 
 ##### Attempt 3.1
 probe_test3.1 <- function(variable) {
@@ -251,22 +266,7 @@ g > 30
 g[5:50]
 g
 
-##### Missing Data Analysis #####
 
-
-# Check for missing data in the ESBL_V1 column:
-is.na(Slim_treat[, "ESBL_V1"])  # This result gives all FALSE which
-# doesn't make sense based on what you see when looking at dataframe, namely "Undetermined"
-# and just blank. R must see them as... characters. (tested this below)
-str(Slim_treat$ESBL_V1)   # PROBLEM:  R sees 
-str(treat)
-pure_Slim_treat <- remove_missing(Slim_treat)  # I am not certain 
-# which values R is assuming are missing so this is dangerous move, besides the fact that
-# I've removed over half the rows (192/366). 
-# If we only look at ESBL_V1, ISOLATES_POSITIVE_V1
-V1 <- select(treat, ESBL_V1, ISOLATES_POSITIVE_V1)
-
-remove_missing(V1)  # 79 rows w/ missing values removed
 
 # To find the correlation or to perform the McNemar test b/w ESBL_V1 and 
 # ISOLATES_POSITIVE_V1 they must be numeric. 
