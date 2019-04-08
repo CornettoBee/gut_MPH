@@ -138,12 +138,114 @@ tqmn_na_int_Cq <- card_stool_tqmn_V1 %>%
   # Convert all values under 35 to 1 and over 35 to 0
   mutate_at(vars(-STUDY_ID_TRUNC), funs(ifelse(. < 35, 1, 0)))
 
+# Note: funs() has been soft deprecated as of dplyr 0.8.0. Instead, use list()
+# funs(name = f(.))   now use: list(name = ~f(.)) 
+tqmn_na_int_Cq_list <- card_stool_tqmn_V1 %>%
+  # Change 'Undertermined' to max threshold (40)
+  mutate_at(vars(-c(STUDY_ID_TRUNC, Bacterial_16s_STOOL, Bacterial_16s_CARD)), 
+                 list(~ifelse(. == "Undetermined", 40, .))) %>%
+  # Convert all columns to numeric (will coerce 'Indeterminate' to NA)
+  mutate_at(vars(-c(STUDY_ID_TRUNC, Bacterial_16s_STOOL, Bacterial_16s_CARD)), as.numeric) %>%
+  # Convert all values under 35 to 1 and over 35 to 0
+  mutate_at(vars(-c(STUDY_ID_TRUNC, Bacterial_16s_STOOL, Bacterial_16s_CARD)), 
+            list(~ifelse(. < 35, 1, 0)))
 
-# Check:
-str(tqmn_na_int)
-tqmn_na_int$CTX_STOOL[10:50]
+
+# Now obtain proportion of positive probes among total population within each probe category.
+
+# We want to look at the correspondence bw Card vs Stool.  
+# First collect all Card data from all types (i.e. TEM, KPC, etc.) into a list and all
+# stool data from all types into a single list and then, for those pairs for which we have
+# data for both card and stool, perform the McNemar test. 
+
+CARD_list <- unite(tqmn_na_int_Cq_list, all_CARD_data, c(CTX_CARD, KPC_CARD, 
+                                                         NDM_CARD, SHV_CARD, TEM_CARD, 
+                                                         CMY_CARD), remove = TRUE)  # Not
+# quite the result intended: gave each observation as all 6 variable values together
+
+CARD_list <- unite(tqmn_na_int_Cq_list, all_CARD_data, c(CTX_CARD, KPC_CARD, 
+                                                         NDM_CARD, SHV_CARD, TEM_CARD, 
+                                                         CMY_CARD), remove = FALSE) # Nope;
+# just retains the original 6 variable columns. 
+STOOL_list <- unite(tqmn_na_int_Cq_list, all_STOOL_data, c(CTX_STOOL, KPC_STOOL, NDM_STOOL, SHV_STOOL, TEM_STOOL, CMY_STOOL) ), sep = "_", remove = TRUE)
+
+# Try using rbind:
+CARD_list <-tqmn_na_int_Cq_list %>%
+  rbind("CTX_CARD", "KPC_CARD", "NDM_CARD", "SHV_CARD", "TEM_CARD", "CMY_CARD") # Nope;
+# yields 16 columns and 372 observations, appending these 6 string to the bottom of 
+# each variable.
+
+CARD_list <- rbind(select(tqmn_na_int_Cq_list, "CTX_CARD", "KPC_CARD", "NDM_CARD", 
+                          "SHV_CARD", "TEM_CARD", "CMY_CARD")) # Nope; gives df w/ these.
+
+# Use match:
+CTX_match <- match(tqmn_na_int_Cq_list$CTX_CARD, tqmn_na_int_Cq_list$CTX_STOOL)
+CTX_match <- (factor(tqmn_na_int_Cq_list$CTX_CARD) %in% factor(tqmn_na_int_Cq_list$CTX_STOOL))
+sum(CTX_match)
+str(CTX_match)  # This gives 100% matching which we know is not true by looking at the data. 
 
 
+KPC_match <- match(tqmn_na_int_Cq_list$KPC_CARD, tqmn_na_int_Cq_list$KPC_STOOL)
+str(KPC_match)
+KPC_match <- (tqmn_na_int_Cq_list$KPC_CARD %in% tqmn_na_int_Cq_list$KPC_STOOL)
+sum(KPC_match)
+KPC_C <- tqmn_na_int_Cq_list$KPC_CARD
+KPC_S <- tqmn_na_int_Cq_list$KPC_STOOL
+KPC_C %in% KPC_S
+
+
+set.seed(111) # this ensures we get the same random numbers
+alot <- round(runif(100,1,1000)) # 100 numbers from interval [1,1000]
+alot
+str(alot)
+str(tqmn_na_int_Cq_list)
+tqmn_na_int_Cq_list %>%
+  mutate_at(vars(-STUDY_ID_TRUNC), list(table(.))) 
+
+tqmn_na_int_Cq_list %>%
+  tally(vars(-STUDY_ID_TRUNC)) 
+
+tally(tqmn_na_int_Cq_list$CTX_STOOL)
+
+# CTX
+tqmn_na_int_Cq_list %>%
+  select(CTX_STOOL) %>% 
+  group_by(CTX_STOOL) %>% 
+  tally()
+tqmn_na_int_Cq_list %>%
+  select(CTX_CARD) %>% 
+  group_by(CTX_CARD) %>% 
+  tally()
+
+# KPC
+tqmn_na_int_Cq_list %>%
+  select(KPC_STOOL) %>% 
+  group_by(KPC_STOOL) %>% 
+  tally()
+tqmn_na_int_Cq_list %>%
+  select(KPC_CARD) %>% 
+  group_by(KPC_CARD) %>% 
+  tally()
+
+# NDM
+tqmn_na_int_Cq_list %>%
+  select(KPC_STOOL) %>% 
+  group_by(KPC_STOOL) %>% 
+  tally()
+tqmn_na_int_Cq_list %>%
+  select(KPC_CARD) %>% 
+  group_by(KPC_CARD) %>% 
+  tally()
+
+tqmn_na_int_Cq_list %>%
+  select(TEM_STOOL) %>% 
+  group_by(TEM_STOOL) %>% 
+  tally()
+
+pos_ESBL <- function()
+  variable <- vars(-STUDY_ID_TRUNC)
+  group_by(variable)
+  
 ##### Next goal: ##### 
 # Iterate through all rows of each column and recode each value less than/equal
 # to 35 as 1, each value > 35 as 0, and each NA remains NA. 
