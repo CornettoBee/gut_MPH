@@ -1,6 +1,7 @@
 # Load libraries
 library(tidyverse)
 library(readxl)
+library(xtable)
 
 # Load data.  This data is from TrEAT TD trial and contains observations from 366
 # Where do the 366 come from? TrEAT only randomized 339. 
@@ -184,28 +185,24 @@ CTX_match <- (factor(tqmn_na_int_Cq_list$CTX_CARD) %in% factor(tqmn_na_int_Cq_li
 sum(CTX_match)
 str(CTX_match)  # This gives 100% matching which we know is not true by looking at the data. 
 
+# Use count:
+C_S_corr_CTX <- tqmn_na_int_Cq_list %>%
+  mutate(CTX_C_S = paste(CTX_CARD, CTX_STOOL, sep = ",")) %>%
+  count(CTX_C_S)
 
-KPC_match <- match(tqmn_na_int_Cq_list$KPC_CARD, tqmn_na_int_Cq_list$KPC_STOOL)
-str(KPC_match)
-KPC_match <- (tqmn_na_int_Cq_list$KPC_CARD %in% tqmn_na_int_Cq_list$KPC_STOOL)
-sum(KPC_match)
-KPC_C <- tqmn_na_int_Cq_list$KPC_CARD
-KPC_S <- tqmn_na_int_Cq_list$KPC_STOOL
-KPC_C %in% KPC_S
+# To make tables of data: 
+C_S_corr_CTX_tab <- xtable(C_S_corr_CTX)
+print.xtable(C_S_corr_CTX_tab, type="html", file="Card_stool_tables.html")
 
 
-set.seed(111) # this ensures we get the same random numbers
-alot <- round(runif(100,1,1000)) # 100 numbers from interval [1,1000]
-alot
-str(alot)
-str(tqmn_na_int_Cq_list)
-tqmn_na_int_Cq_list %>%
-  mutate_at(vars(-STUDY_ID_TRUNC), list(table(.))) 
 
-tqmn_na_int_Cq_list %>%
-  tally(vars(-STUDY_ID_TRUNC)) 
 
-tally(tqmn_na_int_Cq_list$CTX_STOOL)
+
+
+
+
+
+
 
 # CTX
 tqmn_na_int_Cq_list %>%
