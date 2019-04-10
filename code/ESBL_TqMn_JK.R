@@ -195,11 +195,15 @@ C_S_corr_CTX_tab <- xtable(C_S_corr_CTX)
 print.xtable(C_S_corr_CTX_tab, type="html", file="Card_stool_tables.html")
 
 
+CTX_matrix <- matrix(c(188, 9, 8, 13), nrow = 2, ncol = 2, byrow = FALSE, dimnames = 
+list(c("CTX_S_neg", "CTX_S_pos"), c("CTX_C_neg", "CTX_C_pos")))
 
-
-
-
-
+# Apply McNemar test to CTX card vs stool data: 
+mcnemar.test(CTX_matrix, correct = TRUE)  # Yields p-value = 1, which would tell us that
+# probability of seeing this distribution of values would be expected 100% of the time 
+# assuming the test hypothesis that number of discordants of each type (1,0 and 0,1) are
+# equal, i.e. total row 1 = total column 1 and total row 2 = total column 2
+mcnemar.test(CTX_matrix, correct = FALSE)
 
 
 
