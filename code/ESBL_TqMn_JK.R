@@ -157,44 +157,25 @@ tqmn_na_int_Cq_list <- card_stool_tqmn_V1 %>%
 # We want to look at the correspondence bw Card vs Stool.  
 # First collect all Card data from all types (i.e. TEM, KPC, etc.) into a list and all
 # stool data from all types into a single list and then, for those pairs for which we have
-# data for both card and stool, perform the McNemar test. 
+# data for both card and stool, perform the McNemar test. ### This method unsuccessful for
+# now.  See appendix.
+# Use the following for each ESBL enzyme type:
 
-CARD_list <- unite(tqmn_na_int_Cq_list, all_CARD_data, c(CTX_CARD, KPC_CARD, 
-                                                         NDM_CARD, SHV_CARD, TEM_CARD, 
-                                                         CMY_CARD), remove = TRUE)  # Not
-# quite the result intended: gave each observation as all 6 variable values together
-
-CARD_list <- unite(tqmn_na_int_Cq_list, all_CARD_data, c(CTX_CARD, KPC_CARD, 
-                                                         NDM_CARD, SHV_CARD, TEM_CARD, 
-                                                         CMY_CARD), remove = FALSE) # Nope;
-# just retains the original 6 variable columns. 
-STOOL_list <- unite(tqmn_na_int_Cq_list, all_STOOL_data, c(CTX_STOOL, KPC_STOOL, NDM_STOOL, SHV_STOOL, TEM_STOOL, CMY_STOOL) ), sep = "_", remove = TRUE)
-
-# Try using rbind:
-CARD_list <-tqmn_na_int_Cq_list %>%
-  rbind("CTX_CARD", "KPC_CARD", "NDM_CARD", "SHV_CARD", "TEM_CARD", "CMY_CARD") # Nope;
-# yields 16 columns and 372 observations, appending these 6 string to the bottom of 
-# each variable.
-
-CARD_list <- rbind(select(tqmn_na_int_Cq_list, "CTX_CARD", "KPC_CARD", "NDM_CARD", 
-                          "SHV_CARD", "TEM_CARD", "CMY_CARD")) # Nope; gives df w/ these.
-
-# Use match:
-CTX_match <- match(tqmn_na_int_Cq_list$CTX_CARD, tqmn_na_int_Cq_list$CTX_STOOL)
-CTX_match <- (factor(tqmn_na_int_Cq_list$CTX_CARD) %in% factor(tqmn_na_int_Cq_list$CTX_STOOL))
-sum(CTX_match)
-str(CTX_match)  # This gives 100% matching which we know is not true by looking at the data. 
-
+###########
+### CTX ###
 # Use count:
 C_S_corr_CTX <- tqmn_na_int_Cq_list %>%
   mutate(CTX_C_S = paste(CTX_CARD, CTX_STOOL, sep = ",")) %>%
-  count(CTX_C_S)
+  count(CTX_C_S)   # works!
 
 # To make tables of data: 
 C_S_corr_CTX_tab <- xtable(C_S_corr_CTX)
+
+# To print: (not sure how to complete this usage)
 print.xtable(C_S_corr_CTX_tab, type="html", file="Card_stool_tables.html")
 
-
+# Construct 2x2 matrix of those values for which we have data for both Card and Stool 
+# method. 
 CTX_matrix <- matrix(c(188, 9, 8, 13), nrow = 2, ncol = 2, byrow = FALSE, dimnames = 
 list(c("CTX_S_neg", "CTX_S_pos"), c("CTX_C_neg", "CTX_C_pos")))
 
@@ -203,11 +184,76 @@ mcnemar.test(CTX_matrix, correct = TRUE)  # Yields p-value = 1, which would tell
 # probability of seeing this distribution of values would be expected 100% of the time 
 # assuming the test hypothesis that number of discordants of each type (1,0 and 0,1) are
 # equal, i.e. total row 1 = total column 1 and total row 2 = total column 2
-mcnemar.test(CTX_matrix, correct = FALSE)
+
+###########
+### KPC ###
+C_S_corr_KPC <- tqmn_na_int_Cq_list %>%
+  mutate(KPC_C_S = paste(KPC_CARD, KPC_STOOL, sep = ",")) %>%
+  count(KPC_C_S)   
+
+KPC_matrix <- matrix(c(218, 0, 0, 0), nrow = 2, ncol = 2, byrow = FALSE, dimnames = 
+                       list(c("KPC_S_neg", "KPC_S_pos"), c("KPC_C_neg", "KPC_C_pos")))
+
+mcnemar.test(KPC_matrix, correct = TRUE)  # Yields p-value = NA
+
+
+###########
+### NDM ###
+C_S_corr_NDM <- tqmn_na_int_Cq_list %>%
+  mutate(NDM_C_S = paste(NDM_CARD, NDM_STOOL, sep = ",")) %>%
+  count(NDM_C_S)   
+
+NDM_matrix <- matrix(c(218, 0, 0, 0), nrow = 2, ncol = 2, byrow = FALSE, dimnames = 
+                       list(c("NDM_S_neg", "NDM_S_pos"), c("NDM_C_neg", "NDM_C_pos")))
+
+mcnemar.test(NDM_matrix, correct = TRUE)  # Yields p-value = NA
+
+###########
+### SHV ###
+C_S_corr_SHV <- tqmn_na_int_Cq_list %>%
+  mutate(SHV_C_S = paste(SHV_CARD, SHV_STOOL, sep = ",")) %>%
+  count(SHV_C_S)   
+
+SHV_matrix <- matrix(c(160, 20, 10, 28), nrow = 2, ncol = 2, byrow = FALSE, dimnames = 
+                       list(c("SHV_S_neg", "SHV_S_pos"), c("SHV_C_neg", "SHV_C_pos")))
+
+mcnemar.test(SHV_matrix, correct = TRUE)  # Yields p-value = 0.1003 
+
+###########
+### TEM ###
+C_S_corr_TEM <- tqmn_na_int_Cq_list %>%
+  mutate(TEM_C_S = paste(TEM_CARD, TEM_STOOL, sep = ",")) %>%
+  count(TEM_C_S)   
+
+TEM_matrix <- matrix(c(13, 3, 13, 126), nrow = 2, ncol = 2, byrow = FALSE, dimnames = 
+                       list(c("TEM_S_neg", "TEM_S_pos"), c("TEM_C_neg", "TEM_C_pos")))
+
+mcnemar.test(TEM_matrix, correct = TRUE)   # Yields p-value = 0.02445 
+
+###########
+### CMY ###
+C_S_corr_CMY <- tqmn_na_int_Cq_list %>%
+  mutate(CMY_C_S = paste(CMY_CARD, CMY_STOOL, sep = ",")) %>%
+  count(CMY_C_S)   
+
+CMY_matrix <- matrix(c(210, 2, 2, 4), nrow = 2, ncol = 2, byrow = FALSE, dimnames = 
+                       list(c("CMY_S_neg", "CMY_S_pos"), c("CMY_C_neg", "CMY_C_pos")))
+
+mcnemar.test(CMY_matrix, correct = TRUE)   # Yields p-value = 1 (fail to reject the test 
+# hypothesis that the two methods yield same results, good concordance)
 
 
 
 
+
+  
+  
+  
+  
+  
+############################################
+#### APPENDIX/Self-reference for coding ####
+ 
 # CTX
 tqmn_na_int_Cq_list %>%
   select(CTX_STOOL) %>% 
@@ -242,12 +288,34 @@ tqmn_na_int_Cq_list %>%
   select(TEM_STOOL) %>% 
   group_by(TEM_STOOL) %>% 
   tally()
-
-pos_ESBL <- function()
-  variable <- vars(-STUDY_ID_TRUNC)
-  group_by(variable)
+  CARD_list <- unite(tqmn_na_int_Cq_list, all_CARD_data, c(CTX_CARD, KPC_CARD, 
+                                                           NDM_CARD, SHV_CARD, TEM_CARD, 
+                                                           CMY_CARD), remove = TRUE)  # Not
+  # quite the result intended: gave each observation as all 6 variable values together
   
-##### Next goal: ##### 
+  CARD_list <- unite(tqmn_na_int_Cq_list, all_CARD_data, c(CTX_CARD, KPC_CARD, 
+                                                           NDM_CARD, SHV_CARD, TEM_CARD, 
+                                                           CMY_CARD), remove = FALSE) # Nope;
+  # just retains the original 6 variable columns. 
+  
+  
+  # Try using rbind:
+  CARD_list <-tqmn_na_int_Cq_list %>%
+    rbind("CTX_CARD", "KPC_CARD", "NDM_CARD", "SHV_CARD", "TEM_CARD", "CMY_CARD") # Nope;
+  # yields 16 columns and 372 observations, appending these 6 string to the bottom of 
+  # each variable.
+  
+  CARD_list <- rbind(select(tqmn_na_int_Cq_list, "CTX_CARD", "KPC_CARD", "NDM_CARD", 
+                            "SHV_CARD", "TEM_CARD", "CMY_CARD")) # Nope; gives df w/ these.
+  
+  # Use match:
+  CTX_match <- match(tqmn_na_int_Cq_list$CTX_CARD, tqmn_na_int_Cq_list$CTX_STOOL)
+  CTX_match <- (factor(tqmn_na_int_Cq_list$CTX_CARD) %in% factor(tqmn_na_int_Cq_list$CTX_STOOL))
+  sum(CTX_match)
+  str(CTX_match)  # Nope; gives 100% matching which we know is not true by looking at the data. 
+  
+  
+
 # Iterate through all rows of each column and recode each value less than/equal
 # to 35 as 1, each value > 35 as 0, and each NA remains NA. 
 # Cq value of <= 35 means present. 
@@ -386,7 +454,7 @@ binary_ESBL_V1 <- ifelse(num_ESBL$ESBL_V1 == 3, NA,
                                        ifelse(ESBL_V1 = 4, 1, NA)))) # does not work
 
 
-#### APPENDIX/Self-reference for coding ####
+
 
 # Some failed attempts to convert a factor vector to numeric using case_when:
 int_ESBL_V1V5_c <- Slim_treat %>%
