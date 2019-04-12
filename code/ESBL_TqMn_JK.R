@@ -87,8 +87,16 @@ int_ESBL_V1V5 %>%
 # Summary: 
 # Using phenotypic testing we find that there are 12/366 observations that were positive
 # among non-pathogenic E. coli on V1 (visit 1) for ESBL and 17/170 positive on 
-# V5 (visit day 5)
+# V5 (visit day 5).
+# We can then compare these numbers to the overall positive as detected by TaqMan 
+# real-time PCR. 
 
+# Problem: the TaqMan data has markedly more positive observations than the phenotypic
+# data but the positives among the TaqMan data are each, I suspect, much less robust
+# than a positive phenotypic observation. 
+# One conclusion could be that the TaqMan method is simply much better at detecting
+# ESBL bacteria in stool. However, the question is whether positive TaqMan detection
+# means anything. 
 
 
 
